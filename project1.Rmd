@@ -1,0 +1,68 @@
+---
+title: "project1"
+author: "Minajia ZHU"
+date: "2015年7月26日"
+output: html_document
+---
+
+
+```{r,echo=FALSE,warning=FALSE}
+options(xtable.comment = FALSE)
+library("knitr")
+library("formatR")
+opts_chunk$set(message=F,comment="",tidy=T,warning=FALSE,highlight=TRUE)
+options(xtable.type = 'html', stringsAsFactors = F)
+```
+
+
+```{r, eval=FALSE}
+train = read.table('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv')
+test = read.table('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv')
+```
+
+```{r, echo=F, cache=TRUE}
+train = read.csv('pml-training.csv', na.strings = c("NA", "#DIV/0!") )
+test = read.csv('pml-testing.csv', na.strings = c("NA", "#DIV/0!") )
+```
+
+```{r}
+r_na = apply(train, 1, function(x) any(is.na(x)) )
+sum(r_na) #至少有一个数据缺失的行数
+
+c_na = apply(train, 2, function(x) sum(is.na(x))) #每个变量缺少的数据量 
+levels(as.factor(c_na))
+
+names(c_na[c_na != 0]) #待去掉的变量名称
+
+train1 = train[,which(c_na == 0)]
+train2 = train1[,-(1:7)]
+train2$classe = factor(train2$classe)
+
+library(caret)
+modFit <- train(classe ~ ., method="rpart",data=train2)
+
+#names(modFit)
+#apropos("train")
+
+print(modFit$finalModel)
+plot(modFit$finalModel, uniform=TRUE, 
+      main="Classification Tree")
+text(modFit$finalModel, use.n=TRUE, all=TRUE, cex=.8)
+
+# test
+answers = predict(modFit,newdata=test)
+answers = as.character(answers)
+answers
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+
+```
+
+
